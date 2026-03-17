@@ -1,37 +1,16 @@
-{
-  "name": "escape-the-boss",
-  "version": "2.0.0",
-  "private": true,
-  "homepage": "https://ian-edu.github.io/boss-killer",
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "lucide-react": "^0.294.0"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "deploy": "npm run build && gh-pages -d build"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "devDependencies": {
-    "react-scripts": "5.0.1",
-    "gh-pages": "^6.1.0"
-  }
-}
+"homepage": "https://ian-edu.github.io/economics-by-ian",
+```
+
+2. **Go to your repo Settings:**
+   - Settings → Pages
+   - Make sure "Source" is set to `gh-pages` branch
+   - Save
+
+3. **Re-run the deployment:**
+   - Go to Actions tab
+   - Click "Re-run failed jobs"
+   - Wait 5 minutes
+
+4. **Then visit:**
+```
+   https://ian-edu.github.io/economics-by-ian/
