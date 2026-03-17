@@ -8,6 +8,7 @@ const EscapeTheBoss3DUltra = () => {
   const rendererRef = useRef(null);
   const playerRef = useRef(null);
   const bossRef = useRef(null);
+  const initRef = useRef(false);
   
   const [gameState, setGameState] = useState('menu');
   const [bossName, setBossName] = useState('Mr. Boss');
@@ -212,7 +213,8 @@ const EscapeTheBoss3DUltra = () => {
   };
 
   const init3D = () => {
-    if (!containerRef.current || gameState !== 'playing') return;
+    if (initRef.current || !containerRef.current) return;
+    initRef.current = true;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0e27);
@@ -365,7 +367,9 @@ const EscapeTheBoss3DUltra = () => {
       keys[e.key.toLowerCase()] = true;
       if (e.key === ' ') {
         e.preventDefault();
-        placeBomb(scene);
+        if (sceneRef.current && inventory.bomb > 0) {
+          placeBomb(sceneRef.current);
+        }
       }
     };
     const handleKeyUp = (e) => {
@@ -619,12 +623,13 @@ const EscapeTheBoss3DUltra = () => {
     gameDataRef.current.coins = [];
     gameDataRef.current.powerUps = [];
     gameDataRef.current.particles = [];
+    initRef.current = false;
     setGameState('playing');
   };
 
   useEffect(() => {
     if (gameState === 'playing') {
-      return init3D();
+      init3D();
     }
   }, [gameState]);
 
