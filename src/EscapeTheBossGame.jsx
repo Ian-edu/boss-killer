@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { RotateCcw, Trophy, Volume2, VolumeX } from 'lucide-react';
 
 const EscapeTheBossGame = () => {
   const GRID_SIZE = 13;
@@ -7,6 +6,38 @@ const EscapeTheBossGame = () => {
   const GAME_SPEED = 200;
 
   const audioContextRef = useRef(null);
+
+  const [gameState, setGameState] = useState('menu');
+  const [bossName, setBossName] = useState('Mr. Boss');
+  const [tempBossName, setTempBossName] = useState('');
+  const [difficulty, setDifficulty] = useState('normal');
+  const [soundOn, setSoundOn] = useState(true);
+  const [bossType, setBossType] = useState('angry');
+
+  const [playerPos, setPlayerPos] = useState({ x: 1, y: 1 });
+  const [bossPos, setBossPos] = useState({ x: 11, y: 11 });
+  const [bombs, setBombs] = useState([]);
+  const [explosions, setExplosions] = useState([]);
+  const [score, setScore] = useState(0);
+  const [coins, setCoins] = useState([]);
+  const [powerUps, setPowerUps] = useState([]);
+  const [gameOver, setGameOver] = useState(false);
+  const [playerInventory, setPlayerInventory] = useState({ shield: 0, speed: 0, bomb: 0 });
+  const [bossHealth, setBossHealth] = useState(3);
+  const [combos, setCombos] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [leaderboard, setLeaderboard] = useState([
+    { name: 'Top Player', score: 5000 },
+    { name: 'Game Master', score: 4500 },
+    { name: 'Boss Slayer', score: 4000 }
+  ]);
+
+  const bossTypes = {
+    angry: { name: 'Angry Boss', emoji: '😠' },
+    lazy: { name: 'Lazy Boss', emoji: '😴' },
+    sneaky: { name: 'Sneaky Boss', emoji: '🕵️' },
+    corporate: { name: 'Corporate Boss', emoji: '💼' }
+  };
 
   const playSound = useCallback((frequency, duration) => {
     if (!soundOn) return;
@@ -28,40 +59,9 @@ const EscapeTheBossGame = () => {
     } catch (e) {
       // Audio not supported
     }
-  }, []);
+  }, [soundOn]);
 
-  const [gameState, setGameState] = useState('menu');
-  const [bossName, setBossName] = useState('Mr. Boss');
-  const [tempBossName, setTempBossName] = useState('');
-  const [difficulty, setDifficulty] = useState('normal');
-  const [soundOn, setSoundOn] = useState(true);
-  const [bossType, setBossType] = useState('angry');
-
-  const bossTypes = {
-    angry: { name: 'Angry Boss', emoji: '😠', speed: 'normal' },
-    lazy: { name: 'Lazy Boss', emoji: '😴', speed: 'slow' },
-    sneaky: { name: 'Sneaky Boss', emoji: '🕵️', speed: 'fast' },
-    corporate: { name: 'Corporate Boss', emoji: '💼', speed: 'normal' }
-  };
-
-  const [playerPos, setPlayerPos] = useState({ x: 1, y: 1 });
-  const [bossPos, setBossPos] = useState({ x: 11, y: 11 });
-  const [bombs, setBombs] = useState([]);
-  const [explosions, setExplosions] = useState([]);
-  const [score, setScore] = useState(0);
-  const [coins, setCoins] = useState([]);
-  const [powerUps, setPowerUps] = useState([]);
-  const [gameOver, setGameOver] = useState(false);
-  const [playerInventory, setPlayerInventory] = useState({ shield: 0, speed: 0, bomb: 0 });
-  const [bossHealth, setBossHealth] = useState(3);
-  const [combos, setCombos] = useState(0);
-  const [level, setLevel] = useState(1);
-  const [leaderboard, setLeaderboard] = useState([
-    { name: 'Top Player', score: 5000 },
-    { name: 'Game Master', score: 4500 },
-    { name: 'Boss Slayer', score: 4000 }
-  ]);
-
+  // Initialize game
   useEffect(() => {
     if (gameState === 'playing') {
       const initialCoins = [];
@@ -91,6 +91,7 @@ const EscapeTheBossGame = () => {
     }
   }, [gameState, level]);
 
+  // Keyboard controls
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -124,7 +125,11 @@ const EscapeTheBossGame = () => {
           break;
         case ' ':
           e.preventDefault();
-          placeBomb();
+          if (playerInventory.bomb > 0) {
+            setBombs(prev => [...prev, { x: playerPos.x, y: playerPos.y, timer: 3 }]);
+            setPlayerInventory(prev => ({ ...prev, bomb: prev.bomb - 1 }));
+            playSound(400, 0.1);
+          }
           break;
         default:
           break;
@@ -133,20 +138,14 @@ const EscapeTheBossGame = () => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState, playerInventory]);
+  }, [gameState, playerInventory, playerPos, playSound]);
 
-  const placeBomb = useCallback(() => {
-    if (playerInventory.bomb > 0) {
-      setBombs(prev => [...prev, { x: playerPos.x, y: playerPos.y, timer: 3 }]);
-      setPlayerInventory(prev => ({ ...prev, bomb: prev.bomb - 1 }));
-      playSound(400, 0.1);
-    }
-  }, [playerPos, playerInventory.bomb, playSound]);
-
+  // Game loop
   useEffect(() => {
     if (gameState !== 'playing') return;
 
     const gameInterval = setInterval(() => {
+      // Boss AI
       setBossPos(prev => {
         let newX = prev.x;
         let newY = prev.y;
@@ -178,10 +177,10 @@ const EscapeTheBossGame = () => {
 
         newX = Math.max(0, Math.min(GRID_SIZE - 1, newX));
         newY = Math.max(0, Math.min(GRID_SIZE - 1, newY));
-
         return { x: newX, y: newY };
       });
 
+      // Bombs
       setBombs(prevBombs => {
         const updatedBombs = prevBombs.map(b => ({ ...b, timer: b.timer - 1 }));
         const remainingBombs = updatedBombs.filter(b => b.timer > 0);
@@ -215,25 +214,26 @@ const EscapeTheBossGame = () => {
     return () => clearInterval(gameInterval);
   }, [gameState, playerPos, bossType, playSound]);
 
+  // Collisions
   useEffect(() => {
     if (gameState !== 'playing') return;
 
+    // Coins
     setCoins(prev => {
-      const remaining = prev.filter(coin => {
+      return prev.filter(coin => {
         if (coin.x === playerPos.x && coin.y === playerPos.y) {
-          const coinValue = Math.round(coin.value);
-          setScore(s => s + coinValue);
+          setScore(s => s + Math.round(coin.value));
           setCombos(c => c + 1);
           playSound(800, 0.1);
           return false;
         }
         return true;
       });
-      return remaining;
     });
 
+    // Power-ups
     setPowerUps(prev => {
-      const remaining = prev.filter(pu => {
+      return prev.filter(pu => {
         if (pu.x === playerPos.x && pu.y === playerPos.y) {
           if (pu.type === 'shield') {
             setPlayerInventory(prev => ({ ...prev, shield: 5 }));
@@ -248,20 +248,21 @@ const EscapeTheBossGame = () => {
         }
         return true;
       });
-      return remaining;
     });
 
+    // Check explosions on player
     let hitByExplosion = false;
-    explosions.forEach(exp => {
+    for (let exp of explosions) {
       if (exp.x === playerPos.x && exp.y === playerPos.y) {
         hitByExplosion = true;
+        break;
       }
-    });
+    }
 
     if (hitByExplosion) {
       if (playerInventory.shield > 0) {
         setPlayerInventory(prev => ({ ...prev, shield: 0 }));
-        setScore(s => s - 500);
+        setScore(s => Math.max(0, s - 500));
         playSound(200, 0.2);
       } else {
         setGameOver(true);
@@ -270,16 +271,17 @@ const EscapeTheBossGame = () => {
       }
     }
 
+    // Check explosions on boss
     let bossHitCount = 0;
-    explosions.forEach(exp => {
+    for (let exp of explosions) {
       if (exp.x === bossPos.x && exp.y === bossPos.y) {
         bossHitCount++;
       }
-    });
+    }
 
     if (bossHitCount > 0) {
       setBossHealth(prev => prev - bossHitCount);
-      setScore(s => s + (1000 * bossHitCount * (1 + combos * 0.1)));
+      setScore(s => s + Math.round(1000 * bossHitCount * (1 + combos * 0.1)));
       playSound(600, 0.3);
 
       if (bossHealth - bossHitCount <= 0) {
@@ -297,6 +299,7 @@ const EscapeTheBossGame = () => {
       }
     }
 
+    // Boss collision
     if (playerPos.x === bossPos.x && playerPos.y === bossPos.y) {
       if (playerInventory.shield > 0) {
         setPlayerInventory(prev => ({ ...prev, shield: 0 }));
@@ -338,7 +341,6 @@ const EscapeTheBossGame = () => {
     for (let y = 0; y < GRID_SIZE; y++) {
       for (let x = 0; x < GRID_SIZE; x++) {
         const isWall = (x % 2 === 0 && y % 2 === 0) || (x === 0 || y === 0 || x === GRID_SIZE - 1 || y === GRID_SIZE - 1);
-
         let cellContent = null;
         let backgroundColor = isWall ? '#2c2c2c' : '#f0f0f0';
 
@@ -487,9 +489,7 @@ const EscapeTheBossGame = () => {
         </div>
 
         <div style={{ background: '#f5f5f5', padding: '20px', borderRadius: '8px' }}>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px', color: '#333' }}>
-            🏆 Top Scores
-          </h2>
+          <h2 style={{ margin: '0 0 15px', color: '#333' }}>🏆 Top Scores</h2>
           {leaderboard.map((entry, idx) => (
             <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ddd', color: '#666' }}>
               <span>#{idx + 1} {entry.name}</span>
@@ -578,7 +578,7 @@ const EscapeTheBossGame = () => {
 
         <div style={{ background: '#f5f5f5', padding: '30px', borderRadius: '8px', marginBottom: '20px' }}>
           <p style={{ fontSize: '24px', marginBottom: '20px', color: '#333' }}>
-            {isVictory ? `All bosses defeated!` : `You escaped from ${bossName}!`}
+            {isVictory ? 'All bosses defeated!' : `You escaped from ${bossName}!`}
           </p>
           <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#4CAF50', marginBottom: '10px' }}>
             💰 ${totalEarnings}
