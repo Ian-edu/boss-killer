@@ -21,16 +21,10 @@ const EscapeTheBossGame = () => {
   const [score, setScore] = useState(0);
   const [coins, setCoins] = useState([]);
   const [powerUps, setPowerUps] = useState([]);
-  const [gameOver, setGameOver] = useState(false);
   const [playerInventory, setPlayerInventory] = useState({ shield: 0, speed: 0, bomb: 0 });
   const [bossHealth, setBossHealth] = useState(3);
   const [combos, setCombos] = useState(0);
   const [level, setLevel] = useState(1);
-  const [leaderboard, setLeaderboard] = useState([
-    { name: 'Top Player', score: 5000 },
-    { name: 'Game Master', score: 4500 },
-    { name: 'Boss Slayer', score: 4000 }
-  ]);
 
   const bossTypes = {
     angry: { name: 'Angry Boss', emoji: '😠' },
@@ -38,6 +32,12 @@ const EscapeTheBossGame = () => {
     sneaky: { name: 'Sneaky Boss', emoji: '🕵️' },
     corporate: { name: 'Corporate Boss', emoji: '💼' }
   };
+
+  const leaderboard = [
+    { name: 'Top Player', score: 5000 },
+    { name: 'Game Master', score: 4500 },
+    { name: 'Boss Slayer', score: 4000 }
+  ];
 
   const playSound = useCallback((frequency, duration) => {
     if (!soundOn) return;
@@ -61,7 +61,6 @@ const EscapeTheBossGame = () => {
     }
   }, [soundOn]);
 
-  // Initialize game
   useEffect(() => {
     if (gameState === 'playing') {
       const initialCoins = [];
@@ -91,7 +90,6 @@ const EscapeTheBossGame = () => {
     }
   }, [gameState, level]);
 
-  // Keyboard controls
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -140,12 +138,10 @@ const EscapeTheBossGame = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState, playerInventory, playerPos, playSound]);
 
-  // Game loop
   useEffect(() => {
     if (gameState !== 'playing') return;
 
     const gameInterval = setInterval(() => {
-      // Boss AI
       setBossPos(prev => {
         let newX = prev.x;
         let newY = prev.y;
@@ -180,7 +176,6 @@ const EscapeTheBossGame = () => {
         return { x: newX, y: newY };
       });
 
-      // Bombs
       setBombs(prevBombs => {
         const updatedBombs = prevBombs.map(b => ({ ...b, timer: b.timer - 1 }));
         const remainingBombs = updatedBombs.filter(b => b.timer > 0);
@@ -214,11 +209,9 @@ const EscapeTheBossGame = () => {
     return () => clearInterval(gameInterval);
   }, [gameState, playerPos, bossType, playSound]);
 
-  // Collisions
   useEffect(() => {
     if (gameState !== 'playing') return;
 
-    // Coins
     setCoins(prev => {
       return prev.filter(coin => {
         if (coin.x === playerPos.x && coin.y === playerPos.y) {
@@ -231,7 +224,6 @@ const EscapeTheBossGame = () => {
       });
     });
 
-    // Power-ups
     setPowerUps(prev => {
       return prev.filter(pu => {
         if (pu.x === playerPos.x && pu.y === playerPos.y) {
@@ -250,7 +242,6 @@ const EscapeTheBossGame = () => {
       });
     });
 
-    // Check explosions on player
     let hitByExplosion = false;
     for (let exp of explosions) {
       if (exp.x === playerPos.x && exp.y === playerPos.y) {
@@ -265,13 +256,11 @@ const EscapeTheBossGame = () => {
         setScore(s => Math.max(0, s - 500));
         playSound(200, 0.2);
       } else {
-        setGameOver(true);
         setGameState('gameOver');
         playSound(100, 0.5);
       }
     }
 
-    // Check explosions on boss
     let bossHitCount = 0;
     for (let exp of explosions) {
       if (exp.x === bossPos.x && exp.y === bossPos.y) {
@@ -280,11 +269,12 @@ const EscapeTheBossGame = () => {
     }
 
     if (bossHitCount > 0) {
-      setBossHealth(prev => prev - bossHitCount);
+      const newHealth = bossHealth - bossHitCount;
+      setBossHealth(newHealth);
       setScore(s => s + Math.round(1000 * bossHitCount * (1 + combos * 0.1)));
       playSound(600, 0.3);
 
-      if (bossHealth - bossHitCount <= 0) {
+      if (newHealth <= 0) {
         if (level < 3) {
           setLevel(l => l + 1);
           setBossPos({ x: 11, y: 11 });
@@ -299,13 +289,11 @@ const EscapeTheBossGame = () => {
       }
     }
 
-    // Boss collision
     if (playerPos.x === bossPos.x && playerPos.y === bossPos.y) {
       if (playerInventory.shield > 0) {
         setPlayerInventory(prev => ({ ...prev, shield: 0 }));
         playSound(200, 0.2);
       } else {
-        setGameOver(true);
         setGameState('gameOver');
         playSound(100, 0.5);
       }
@@ -325,7 +313,6 @@ const EscapeTheBossGame = () => {
     setCombos(0);
     setLevel(1);
     setBossHealth(3);
-    setGameOver(false);
     setGameState('playing');
     playSound(800, 0.2);
   };
@@ -566,47 +553,45 @@ const EscapeTheBossGame = () => {
     );
   }
 
-  if (gameState === 'gameOver') {
-    const totalEarnings = Math.round(score);
-    const isVictory = level > 3;
+  const totalEarnings = Math.round(score);
+  const isVictory = level > 3;
 
-    return (
-      <div style={{ padding: '20px', textAlign: 'center', maxWidth: '500px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
-        <h1 style={{ fontSize: '48px', marginBottom: '20px', color: isVictory ? '#4CAF50' : '#333' }}>
-          {isVictory ? '🏆 YOU WON! 🏆' : 'GAME OVER!'}
-        </h1>
+  return (
+    <div style={{ padding: '20px', textAlign: 'center', maxWidth: '500px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
+      <h1 style={{ fontSize: '48px', marginBottom: '20px', color: isVictory ? '#4CAF50' : '#333' }}>
+        {isVictory ? '🏆 YOU WON! 🏆' : 'GAME OVER!'}
+      </h1>
 
-        <div style={{ background: '#f5f5f5', padding: '30px', borderRadius: '8px', marginBottom: '20px' }}>
-          <p style={{ fontSize: '24px', marginBottom: '20px', color: '#333' }}>
-            {isVictory ? 'All bosses defeated!' : `You escaped from ${bossName}!`}
-          </p>
-          <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#4CAF50', marginBottom: '10px' }}>
-            💰 ${totalEarnings}
-          </p>
-          <p style={{ color: '#666', marginBottom: '20px' }}>
-            Total OT Pay & Bonus Earned
-          </p>
+      <div style={{ background: '#f5f5f5', padding: '30px', borderRadius: '8px', marginBottom: '20px' }}>
+        <p style={{ fontSize: '24px', marginBottom: '20px', color: '#333' }}>
+          {isVictory ? 'All bosses defeated!' : `You escaped from ${bossName}!`}
+        </p>
+        <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#4CAF50', marginBottom: '10px' }}>
+          💰 ${totalEarnings}
+        </p>
+        <p style={{ color: '#666', marginBottom: '20px' }}>
+          Total OT Pay & Bonus Earned
+        </p>
 
-          <button
-            onClick={resetGame}
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              cursor: 'pointer'
-            }}
-          >
-            {isVictory ? 'Play Again 🎮' : 'Try Again 🎮'}
-          </button>
-        </div>
+        <button
+          onClick={resetGame}
+          style={{
+            width: '100%',
+            padding: '12px',
+            background: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            fontWeight: 'bold',
+            fontSize: '16px',
+            cursor: 'pointer'
+          }}
+        >
+          {isVictory ? 'Play Again 🎮' : 'Try Again 🎮'}
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
 };
 
 export default EscapeTheBossGame;
