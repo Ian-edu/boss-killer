@@ -8,7 +8,6 @@ const EscapeTheBoss3DUltra = () => {
   const rendererRef = useRef(null);
   const playerRef = useRef(null);
   const bossRef = useRef(null);
-  const particlesRef = useRef([]);
   
   const [gameState, setGameState] = useState('menu');
   const [bossName, setBossName] = useState('Mr. Boss');
@@ -60,7 +59,6 @@ const EscapeTheBoss3DUltra = () => {
   const createPlayerModel = () => {
     const group = new THREE.Group();
     
-    // Body
     const bodyGeometry = new THREE.CapsuleGeometry(0.25, 0.8, 8, 16);
     const bodyMaterial = new THREE.MeshStandardMaterial({
       color: 0x4CAF50,
@@ -73,7 +71,6 @@ const EscapeTheBoss3DUltra = () => {
     body.position.y = 0.5;
     group.add(body);
 
-    // Head
     const headGeometry = new THREE.SphereGeometry(0.2, 32, 32);
     const headMaterial = new THREE.MeshStandardMaterial({
       color: 0xffcc99,
@@ -86,7 +83,6 @@ const EscapeTheBoss3DUltra = () => {
     head.position.y = 1.2;
     group.add(head);
 
-    // Eyes
     const eyeGeometry = new THREE.SphereGeometry(0.08, 16, 16);
     const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
     const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
@@ -96,7 +92,6 @@ const EscapeTheBoss3DUltra = () => {
     rightEye.position.set(0.08, 1.35, 0.18);
     group.add(rightEye);
 
-    // Arms
     const armGeometry = new THREE.CapsuleGeometry(0.08, 0.6, 8, 8);
     const armMaterial = new THREE.MeshStandardMaterial({
       color: 0xffcc99,
@@ -120,7 +115,6 @@ const EscapeTheBoss3DUltra = () => {
   const createBossModel = () => {
     const group = new THREE.Group();
 
-    // Boss body - intimidating
     const bodyGeometry = new THREE.BoxGeometry(0.8, 1.8, 0.8);
     const bodyMaterial = new THREE.MeshStandardMaterial({
       color: 0xff3333,
@@ -133,7 +127,6 @@ const EscapeTheBoss3DUltra = () => {
     body.position.y = 0.9;
     group.add(body);
 
-    // Head
     const headGeometry = new THREE.BoxGeometry(0.6, 0.7, 0.6);
     const headMaterial = new THREE.MeshStandardMaterial({
       color: 0xff5555,
@@ -146,7 +139,6 @@ const EscapeTheBoss3DUltra = () => {
     head.position.y = 1.7;
     group.add(head);
 
-    // Evil eyes
     const eyeGeometry = new THREE.SphereGeometry(0.12, 16, 16);
     const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
     const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
@@ -156,7 +148,6 @@ const EscapeTheBoss3DUltra = () => {
     rightEye.position.set(0.15, 1.8, 0.25);
     group.add(rightEye);
 
-    // Arms (large and menacing)
     const armGeometry = new THREE.BoxGeometry(0.2, 1, 0.2);
     const armMaterial = new THREE.MeshStandardMaterial({
       color: 0xcc0000,
@@ -172,7 +163,6 @@ const EscapeTheBoss3DUltra = () => {
     rightArm.position.set(0.6, 1.2, 0);
     group.add(rightArm);
 
-    // Horns
     const hornGeometry = new THREE.ConeGeometry(0.1, 0.5, 16);
     const hornMaterial = new THREE.MeshStandardMaterial({
       color: 0x333333,
@@ -224,13 +214,11 @@ const EscapeTheBoss3DUltra = () => {
   const init3D = () => {
     if (!containerRef.current || gameState !== 'playing') return;
 
-    // Scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0e27);
     scene.fog = new THREE.Fog(0x0a0e27, 100, 150);
     sceneRef.current = scene;
 
-    // Camera
     const camera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
@@ -241,7 +229,6 @@ const EscapeTheBoss3DUltra = () => {
     camera.lookAt(0, 2, 0);
     cameraRef.current = camera;
 
-    // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -250,7 +237,6 @@ const EscapeTheBoss3DUltra = () => {
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
 
@@ -266,7 +252,6 @@ const EscapeTheBoss3DUltra = () => {
     directionalLight.shadow.camera.far = 150;
     scene.add(directionalLight);
 
-    // Add point lights for atmosphere
     const pointLight1 = new THREE.PointLight(0x667eea, 0.5);
     pointLight1.position.set(15, 10, 15);
     scene.add(pointLight1);
@@ -274,7 +259,6 @@ const EscapeTheBoss3DUltra = () => {
     pointLight2.position.set(-15, 10, -15);
     scene.add(pointLight2);
 
-    // Ground
     const groundGeometry = new THREE.PlaneGeometry(30, 30);
     const groundMaterial = new THREE.MeshStandardMaterial({
       color: 0x1a2a4a,
@@ -286,24 +270,20 @@ const EscapeTheBoss3DUltra = () => {
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // Grid
     const gridHelper = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
     gridHelper.position.y = 0.01;
     scene.add(gridHelper);
 
-    // Player
     const player = createPlayerModel();
     player.position.set(gameDataRef.current.playerPos.x, 0, gameDataRef.current.playerPos.z);
     playerRef.current = player;
     scene.add(player);
 
-    // Boss
     const boss = createBossModel();
     boss.position.set(gameDataRef.current.bossPos.x, 0, gameDataRef.current.bossPos.z);
     bossRef.current = boss;
     scene.add(boss);
 
-    // Create coins
     gameDataRef.current.coins = [];
     for (let i = 0; i < 10; i++) {
       const coinGroup = new THREE.Group();
@@ -320,7 +300,6 @@ const EscapeTheBoss3DUltra = () => {
       coin.rotation.x = Math.PI / 2;
       coinGroup.add(coin);
 
-      // Coin glow
       const glowGeometry = new THREE.CylinderGeometry(0.27, 0.27, 0.08, 32);
       const glowMaterial = new THREE.MeshStandardMaterial({
         color: 0xffd700,
@@ -347,7 +326,6 @@ const EscapeTheBoss3DUltra = () => {
       });
     }
 
-    // Create power-ups
     gameDataRef.current.powerUps = [];
     const powerUpTypes = [
       { name: 'shield', color: 0x2196F3, emissive: 0x1565c0 },
@@ -382,7 +360,6 @@ const EscapeTheBoss3DUltra = () => {
       });
     }
 
-    // Input handling
     const keys = {};
     const handleKeyDown = (e) => {
       keys[e.key.toLowerCase()] = true;
@@ -398,7 +375,6 @@ const EscapeTheBoss3DUltra = () => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    // Animation loop
     let animationId;
     const clock = new THREE.Clock();
 
@@ -406,24 +382,19 @@ const EscapeTheBoss3DUltra = () => {
       animationId = requestAnimationFrame(animate);
       const deltaTime = clock.getDelta();
 
-      // Player movement
       const moveSpeed = inventory.speed > 0 ? 0.15 : 0.1;
       if (keys['arrowup'] || keys['w']) gameDataRef.current.playerPos.z -= moveSpeed;
       if (keys['arrowdown'] || keys['s']) gameDataRef.current.playerPos.z += moveSpeed;
       if (keys['arrowleft'] || keys['a']) gameDataRef.current.playerPos.x -= moveSpeed;
       if (keys['arrowright'] || keys['d']) gameDataRef.current.playerPos.x += moveSpeed;
 
-      // Clamp player
       gameDataRef.current.playerPos.x = Math.max(-14, Math.min(14, gameDataRef.current.playerPos.x));
       gameDataRef.current.playerPos.z = Math.max(-14, Math.min(14, gameDataRef.current.playerPos.z));
 
       player.position.x = gameDataRef.current.playerPos.x;
       player.position.z = gameDataRef.current.playerPos.z;
-
-      // Animate player (bobbing)
       player.position.y = Math.sin(clock.getElapsedTime() * 2) * 0.1;
 
-      // Boss AI
       const dx = gameDataRef.current.playerPos.x - gameDataRef.current.bossPos.x;
       const dz = gameDataRef.current.playerPos.z - gameDataRef.current.bossPos.z;
       const distance = Math.sqrt(dx * dx + dz * dz);
@@ -440,18 +411,16 @@ const EscapeTheBoss3DUltra = () => {
       boss.position.z = gameDataRef.current.bossPos.z;
       boss.rotation.y += 0.01;
 
-      // Animate coins
       gameDataRef.current.coins.forEach(coin => {
         coin.mesh.rotation.z += 0.05;
         coin.mesh.position.y = 0.5 + Math.sin(clock.getElapsedTime() * 2) * 0.2;
 
-        const dx = player.position.x - coin.x;
-        const dz = player.position.z - coin.z;
-        if (Math.sqrt(dx * dx + dz * dz) < 1.5 && !coin.collected) {
+        const cdx = player.position.x - coin.x;
+        const cdz = player.position.z - coin.z;
+        if (Math.sqrt(cdx * cdx + cdz * cdz) < 1.5 && !coin.collected) {
           coin.collected = true;
           scene.remove(coin.mesh);
           
-          // Create collection particles
           for (let i = 0; i < 15; i++) {
             const particleGeometry = new THREE.SphereGeometry(0.08, 8, 8);
             const particleMaterial = new THREE.MeshStandardMaterial({
@@ -463,14 +432,14 @@ const EscapeTheBoss3DUltra = () => {
             particle.position.copy(coin.mesh.position);
             particle.castShadow = true;
 
-            const velocity = new THREE.Vector3(
+            const pvelocity = new THREE.Vector3(
               (Math.random() - 0.5) * 0.3,
               Math.random() * 0.3 + 0.2,
               (Math.random() - 0.5) * 0.3
             );
 
             scene.add(particle);
-            gameDataRef.current.particles.push({ mesh: particle, velocity, life: 1 });
+            gameDataRef.current.particles.push({ mesh: particle, velocity: pvelocity, life: 1 });
           }
 
           setScore(s => s + 100);
@@ -479,15 +448,14 @@ const EscapeTheBoss3DUltra = () => {
         }
       });
 
-      // Animate power-ups
       gameDataRef.current.powerUps.forEach(pu => {
         pu.mesh.rotation.x += 0.02;
         pu.mesh.rotation.y += 0.03;
         pu.mesh.position.y = 1 + Math.sin(clock.getElapsedTime() * 3) * 0.3;
 
-        const dx = player.position.x - pu.x;
-        const dz = player.position.z - pu.z;
-        if (Math.sqrt(dx * dx + dz * dz) < 1.5 && !pu.collected) {
+        const pudx = player.position.x - pu.x;
+        const pudz = player.position.z - pu.z;
+        if (Math.sqrt(pudx * pudx + pudz * pudz) < 1.5 && !pu.collected) {
           pu.collected = true;
           scene.remove(pu.mesh);
 
@@ -506,7 +474,6 @@ const EscapeTheBoss3DUltra = () => {
         }
       });
 
-      // Update bombs
       gameDataRef.current.bombs.forEach((bomb, idx) => {
         bomb.mesh.scale.x = 1 + Math.sin(clock.getElapsedTime() * 8) * 0.2;
         bomb.mesh.scale.y = bomb.mesh.scale.x;
@@ -520,7 +487,6 @@ const EscapeTheBoss3DUltra = () => {
         }
       });
 
-      // Update explosions
       gameDataRef.current.explosions.forEach((exp, idx) => {
         exp.mesh.scale.x *= 1.02;
         exp.mesh.scale.y *= 1.02;
@@ -533,10 +499,9 @@ const EscapeTheBoss3DUltra = () => {
         }
       });
 
-      // Update particles
       gameDataRef.current.particles.forEach((particle, idx) => {
         particle.mesh.position.add(particle.velocity);
-        particle.velocity.y -= 0.01; // gravity
+        particle.velocity.y -= 0.01;
         particle.life -= 0.02;
         particle.mesh.material.opacity = particle.life;
 
@@ -546,7 +511,6 @@ const EscapeTheBoss3DUltra = () => {
         }
       });
 
-      // Inventory timers
       setInventory(prev => ({
         shield: Math.max(0, prev.shield - deltaTime),
         speed: Math.max(0, prev.speed - deltaTime),
@@ -558,7 +522,6 @@ const EscapeTheBoss3DUltra = () => {
 
     animate();
 
-    // Handle resize
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -583,7 +546,6 @@ const EscapeTheBoss3DUltra = () => {
   const createExplosion = (x, z, scene) => {
     if (!scene) return;
 
-    // Explosion sphere
     const explosionGeometry = new THREE.SphereGeometry(2, 16, 16);
     const explosionMaterial = new THREE.MeshBasicMaterial({
       color: 0xff8800,
@@ -601,13 +563,11 @@ const EscapeTheBoss3DUltra = () => {
       timer: 10
     });
 
-    // Particle explosion
     createExplosionParticles(x, z, scene);
 
-    // Check boss hit
-    const dx = bossRef.current.position.x - x;
-    const dz = bossRef.current.position.z - z;
-    if (Math.sqrt(dx * dx + dz * dz) < 3) {
+    const edx = bossRef.current.position.x - x;
+    const edz = bossRef.current.position.z - z;
+    if (Math.sqrt(edx * edx + edz * edz) < 3) {
       setBossHealth(prev => Math.max(0, prev - 1));
       setScore(s => s + 1000);
       addNotification('💥 BOSS HIT! +$1000', '#FF5722');
@@ -799,7 +759,6 @@ const EscapeTheBoss3DUltra = () => {
   if (gameState === 'playing') {
     return (
       <div ref={containerRef} style={{ width: '100%', height: '100vh', position: 'relative' }}>
-        {/* HUD */}
         <div style={{
           position: 'fixed',
           top: '30px',
@@ -822,7 +781,6 @@ const EscapeTheBoss3DUltra = () => {
           </div>
         </div>
 
-        {/* Notifications */}
         <div style={{ position: 'fixed', top: '30px', right: '30px', zIndex: 100 }}>
           {notifications.map(notif => (
             <div key={notif.id} style={{
@@ -842,7 +800,6 @@ const EscapeTheBoss3DUltra = () => {
           ))}
         </div>
 
-        {/* Instructions */}
         <div style={{
           position: 'fixed',
           bottom: '30px',
