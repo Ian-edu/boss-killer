@@ -1,402 +1,287 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
 
-const EscapeTheBossGame = () => {
-  const GRID_SIZE = 13;
-  const CELL_SIZE = 32;
-  const GAME_SPEED = 200;
+const GRID_SIZE = 13;
+const CELL_SIZE = 32;
+const GAME_SPEED = 200;
 
-  const audioContextRef = useRef(null);
-  const gameStateRef = useRef('menu');
+export default function EscapeTheBossGame() {
+  const audioRef = useRef(null);
 
-  const [gameState, setGameState] = useState('menu');
-  const [bossName, setBossName] = useState('Mr. Boss');
-  const [tempBossName, setTempBossName] = useState('');
-  const [soundOn, setSoundOn] = useState(true);
-  const [bossType, setBossType] = useState('angry');
+  const [gameState, setGameState] = useState("menu");
+  const [bossName, setBossName] = useState("Mr. Boss");
+  const [tempBossName, setTempBossName] = useState("");
+
   const [playerPos, setPlayerPos] = useState({ x: 1, y: 1 });
   const [bossPos, setBossPos] = useState({ x: 11, y: 11 });
+
   const [bombs, setBombs] = useState([]);
   const [explosions, setExplosions] = useState([]);
-  const [score, setScore] = useState(0);
+
   const [coins, setCoins] = useState([]);
   const [powerUps, setPowerUps] = useState([]);
-  const [playerInventory, setPlayerInventory] = useState({ shield: 0, speed: 0, bomb: 0 });
+
+  const [score, setScore] = useState(0);
   const [bossHealth, setBossHealth] = useState(3);
-  const [combos, setCombos] = useState(0);
-  const [level, setLevel] = useState(1);
+
+  const [inventory, setInventory] = useState({
+    bomb: 3,
+    shield: 0,
+    speed: 0
+  });
 
   const bossTypes = {
-    angry: { name: 'Angry Boss', emoji: '😠' },
-    lazy: { name: 'Lazy Boss', emoji: '😴' },
-    sneaky: { name: 'Sneaky Boss', emoji: '🕵️' },
-    corporate: { name: 'Corporate Boss', emoji: '💼' }
+    angry: { emoji: "😠" },
+    lazy: { emoji: "😴" },
+    sneaky: { emoji: "🕵️" }
   };
 
-  const leaderboard = [
-    { name: 'Top Player', score: 5000 },
-    { name: 'Game Master', score: 4500 },
-    { name: 'Boss Slayer', score: 4000 }
-  ];
+  const [bossType, setBossType] = useState("angry");
 
-  const playSound = useCallback((frequency, duration) => {
-    if (!soundOn) return;
+  const playSound = useCallback((freq, dur) => {
     try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioRef.current) {
+        audioRef.current = new (window.AudioContext ||
+          window.webkitAudioContext)();
       }
-      const ctx = audioContextRef.current;
+
+      const ctx = audioRef.current;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
+
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = frequency;
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + duration);
-    } catch (e) {
-      // Audio not supported
+
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(
+        0.01,
+        ctx.currentTime + dur
+      );
+
+      osc.start();
+      osc.stop(ctx.currentTime + dur);
+    } catch {}
+  }, []);
+
+  const randomPos = () => ({
+    x: Math.floor(Math.random() * (GRID_SIZE - 2)) + 1,
+    y: Math.floor(Math.random() * (GRID_SIZE - 2)) + 1
+  });
+
+  const spawnItems = () => {
+    const newCoins = [];
+    for (let i = 0; i < 8; i++) {
+      newCoins.push({ ...randomPos(), value: 100 });
     }
-  }, [soundOn]);
+
+    const newPowerUps = [
+      { ...randomPos(), type: "shield" },
+      { ...randomPos(), type: "speed" },
+      { ...randomPos(), type: "bomb" }
+    ];
+
+    setCoins(newCoins);
+    setPowerUps(newPowerUps);
+  };
+
+  const startGame = () => {
+    if (tempBossName) setBossName(tempBossName);
+
+    setPlayerPos({ x: 1, y: 1 });
+    setBossPos({ x: 11, y: 11 });
+
+    setScore(0);
+    setBossHealth(3);
+
+    setBombs([]);
+    setExplosions([]);
+
+    setInventory({
+      bomb: 3,
+      shield: 0,
+      speed: 0
+    });
+
+    spawnItems();
+    setGameState("playing");
+  };
 
   useEffect(() => {
-    gameStateRef.current = gameState;
-  }, [gameState]);
+    if (gameState !== "playing") return;
 
-  useEffect(() => {
-    if (gameState === 'playing') {
-      const initialCoins = [];
-      for (let i = 0; i < 10; i++) {
-        let x, y;
-        do {
-          x = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
-          y = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
-        } while ((x === 1 && y === 1) || (x === 11 && y === 11));
-        initialCoins.push({ x, y, value: 100 + Math.random() * 50 });
-      }
-      setCoins(initialCoins);
+    const handleMove = e => {
+      const speed = inventory.speed ? 2 : 1;
 
-      const initialPowerUps = [];
-      const powerUpTypes = ['shield', 'speed', 'bomb'];
-      for (let i = 0; i < 3; i++) {
-        let x, y;
-        do {
-          x = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
-          y = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
-        } while ((x === 1 && y === 1) || (x === 11 && y === 11));
-        initialPowerUps.push({ x, y, type: powerUpTypes[i] });
-      }
-      setPowerUps(initialPowerUps);
-      setBossHealth(3);
-    }
-  }, [gameState]);
+      setPlayerPos(p => {
+        let { x, y } = p;
 
-  useEffect(() => {
-    if (gameState !== 'playing') return;
+        if (e.key === "ArrowUp" || e.key === "w") y -= speed;
+        if (e.key === "ArrowDown" || e.key === "s") y += speed;
+        if (e.key === "ArrowLeft" || e.key === "a") x -= speed;
+        if (e.key === "ArrowRight" || e.key === "d") x += speed;
 
-    const handleKeyPress = (e) => {
-      const speed = playerInventory.speed > 0 ? 2 : 1;
+        x = Math.max(0, Math.min(GRID_SIZE - 1, x));
+        y = Math.max(0, Math.min(GRID_SIZE - 1, y));
 
-      switch (e.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          setPlayerPos(prev => ({ ...prev, y: Math.max(0, prev.y - speed) }));
-          e.preventDefault();
-          break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          setPlayerPos(prev => ({ ...prev, y: Math.min(GRID_SIZE - 1, prev.y + speed) }));
-          e.preventDefault();
-          break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          setPlayerPos(prev => ({ ...prev, x: Math.max(0, prev.x - speed) }));
-          e.preventDefault();
-          break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          setPlayerPos(prev => ({ ...prev, x: Math.min(GRID_SIZE - 1, prev.x + speed) }));
-          e.preventDefault();
-          break;
-        case ' ':
-          e.preventDefault();
-          if (playerInventory.bomb > 0) {
-            setBombs(prev => [...prev, { x: playerPos.x, y: playerPos.y, timer: 3 }]);
-            setPlayerInventory(prev => ({ ...prev, bomb: prev.bomb - 1 }));
-            playSound(400, 0.1);
-          }
-          break;
-        default:
-          break;
+        return { x, y };
+      });
+
+      if (e.key === " " && inventory.bomb > 0) {
+        setBombs(b => [...b, { ...playerPos, timer: 3 }]);
+
+        setInventory(i => ({
+          ...i,
+          bomb: i.bomb - 1
+        }));
+
+        playSound(400, 0.1);
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState, playerInventory, playerPos, playSound]);
+    window.addEventListener("keydown", handleMove);
+    return () => window.removeEventListener("keydown", handleMove);
+  }, [playerPos, inventory, playSound, gameState]);
 
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    if (gameState !== "playing") return;
 
-    const gameInterval = setInterval(() => {
-      setPlayerPos(p => p);
-
+    const loop = setInterval(() => {
       setBossPos(prev => {
-        let newX = prev.x;
-        let newY = prev.y;
-        const diffX = playerPos.x - prev.x;
-        const diffY = playerPos.y - prev.y;
+        const dx = playerPos.x - prev.x;
+        const dy = playerPos.y - prev.y;
 
-        if (bossType === 'lazy') {
-          if (Math.random() > 0.7) {
-            newX += Math.random() > 0.5 ? 1 : -1;
-            newY += Math.random() > 0.5 ? 1 : -1;
-          }
-        } else if (bossType === 'sneaky') {
-          if (Math.random() > 0.5) {
-            if (Math.abs(diffX) > Math.abs(diffY)) {
-              newX += diffX > 0 ? 1 : -1;
-            } else {
-              newY += diffY > 0 ? 1 : -1;
+        let x = prev.x;
+        let y = prev.y;
+
+        if (Math.abs(dx) > Math.abs(dy)) x += dx > 0 ? 1 : -1;
+        else y += dy > 0 ? 1 : -1;
+
+        return {
+          x: Math.max(0, Math.min(GRID_SIZE - 1, x)),
+          y: Math.max(0, Math.min(GRID_SIZE - 1, y))
+        };
+      });
+
+      setBombs(b =>
+        b
+          .map(b => ({ ...b, timer: b.timer - 1 }))
+          .filter(b => {
+            if (b.timer <= 0) {
+              explode(b);
+              return false;
             }
-          } else {
-            newX += Math.random() > 0.5 ? 1 : -1;
-          }
-        } else {
-          if (Math.abs(diffX) > Math.abs(diffY)) {
-            newX += diffX > 0 ? 1 : -1;
-          } else {
-            newY += diffY > 0 ? 1 : -1;
-          }
-        }
-
-        newX = Math.max(0, Math.min(GRID_SIZE - 1, newX));
-        newY = Math.max(0, Math.min(GRID_SIZE - 1, newY));
-        return { x: newX, y: newY };
-      });
-
-      setBombs(prevBombs => {
-        const updatedBombs = prevBombs.map(b => ({ ...b, timer: b.timer - 1 }));
-        const remainingBombs = updatedBombs.filter(b => b.timer > 0);
-        const explodedBombs = updatedBombs.filter(b => b.timer <= 0);
-
-        const newExplosions = [];
-        explodedBombs.forEach(bomb => {
-          newExplosions.push({ x: bomb.x, y: bomb.y, timer: 2 });
-          playSound(500, 0.2);
-          for (let i = 1; i <= 2; i++) {
-            if (bomb.x + i < GRID_SIZE) newExplosions.push({ x: bomb.x + i, y: bomb.y, timer: 2 });
-            if (bomb.x - i >= 0) newExplosions.push({ x: bomb.x - i, y: bomb.y, timer: 2 });
-            if (bomb.y + i < GRID_SIZE) newExplosions.push({ x: bomb.x, y: bomb.y + i, timer: 2 });
-            if (bomb.y - i >= 0) newExplosions.push({ x: bomb.x, y: bomb.y - i, timer: 2 });
-          }
-        });
-
-        setExplosions(prev => [...prev, ...newExplosions].filter(e => e.timer > 0));
-        return remainingBombs;
-      });
-
-      setExplosions(prev => prev.map(e => ({ ...e, timer: e.timer - 1 })).filter(e => e.timer > 0));
-
-      setPlayerInventory(prev => ({
-        shield: Math.max(0, prev.shield - 1),
-        speed: Math.max(0, prev.speed - 1),
-        bomb: prev.bomb
-      }));
+            return true;
+          })
+      );
     }, GAME_SPEED);
 
-    return () => clearInterval(gameInterval);
-  }, [gameState, playerPos, bossType, playSound]);
+    return () => clearInterval(loop);
+  }, [playerPos, gameState]);
+
+  const explode = bomb => {
+    const newExplosions = [{ ...bomb, timer: 2 }];
+
+    for (let i = 1; i <= 2; i++) {
+      newExplosions.push({ x: bomb.x + i, y: bomb.y, timer: 2 });
+      newExplosions.push({ x: bomb.x - i, y: bomb.y, timer: 2 });
+      newExplosions.push({ x: bomb.x, y: bomb.y + i, timer: 2 });
+      newExplosions.push({ x: bomb.x, y: bomb.y - i, timer: 2 });
+    }
+
+    setExplosions(e => [...e, ...newExplosions]);
+
+    playSound(600, 0.2);
+  };
 
   useEffect(() => {
-    if (gameState !== 'playing') return;
+    setExplosions(e =>
+      e.map(e => ({ ...e, timer: e.timer - 1 })).filter(e => e.timer > 0)
+    );
+  }, [bombs]);
 
-    setCoins(prev => prev.filter(coin => {
-      if (coin.x === playerPos.x && coin.y === playerPos.y) {
-        setScore(s => s + Math.round(coin.value));
-        setCombos(c => c + 1);
-        playSound(800, 0.1);
-        return false;
+  useEffect(() => {
+    coins.forEach(c => {
+      if (c.x === playerPos.x && c.y === playerPos.y) {
+        setScore(s => s + c.value);
+        playSound(900, 0.1);
+        setCoins(cs => cs.filter(x => x !== c));
       }
-      return true;
-    }));
-
-    setPowerUps(prev => prev.filter(pu => {
-      if (pu.x === playerPos.x && pu.y === playerPos.y) {
-        if (pu.type === 'shield') setPlayerInventory(prev => ({ ...prev, shield: 5 }));
-        else if (pu.type === 'speed') setPlayerInventory(prev => ({ ...prev, speed: 8 }));
-        else if (pu.type === 'bomb') setPlayerInventory(prev => ({ ...prev, bomb: prev.bomb + 3 }));
-        setScore(s => s + 500);
-        playSound(1200, 0.15);
-        return false;
-      }
-      return true;
-    }));
-
-    let hitByExplosion = false;
-    for (let exp of explosions) {
-      if (exp.x === playerPos.x && exp.y === playerPos.y) {
-        hitByExplosion = true;
-        break;
-      }
-    }
-
-    if (hitByExplosion) {
-      if (playerInventory.shield > 0) {
-        setPlayerInventory(prev => ({ ...prev, shield: 0 }));
-        setScore(s => Math.max(0, s - 500));
-      } else {
-        setGameState('gameOver');
-      }
-    }
-
-    let bossHitCount = 0;
-    for (let exp of explosions) {
-      if (exp.x === bossPos.x && exp.y === bossPos.y) {
-        bossHitCount++;
-      }
-    }
-
-    if (bossHitCount > 0) {
-      setBossHealth(prev => Math.max(0, prev - bossHitCount));
-      setScore(s => s + Math.round(1000 * bossHitCount * (1 + combos * 0.1)));
-      playSound(600, 0.3);
-      setBossPos({ x: 11, y: 11 });
-    }
-
-    if (playerPos.x === bossPos.x && playerPos.y === bossPos.y) {
-      if (playerInventory.shield > 0) {
-        setPlayerInventory(prev => ({ ...prev, shield: 0 }));
-      } else {
-        setGameState('gameOver');
-      }
-    }
-  }, [playerPos, explosions, playerInventory, gameState, bossPos, combos, playSound]);
-
-  const startGame = () => {
-    if (tempBossName.trim()) setBossName(tempBossName);
-    setPlayerPos({ x: 1, y: 1 });
-    setBossPos({ x: 11, y: 11 });
-    setScore(0);
-    setBombs([]);
-    setExplosions([]);
-    setPlayerInventory({ shield: 0, speed: 0, bomb: 3 });
-    setCombos(0);
-    setLevel(1);
-    setBossHealth(3);
-    setGameState('playing');
-    playSound(800, 0.2);
-  };
-
-  const resetGame = () => {
-    setGameState('menu');
-    setTempBossName('');
-  };
+    });
+  }, [playerPos, coins]);
 
   const renderBoard = () => {
     const tiles = [];
+
     for (let y = 0; y < GRID_SIZE; y++) {
       for (let x = 0; x < GRID_SIZE; x++) {
-        const isWall = (x % 2 === 0 && y % 2 === 0) || (x === 0 || y === 0 || x === GRID_SIZE - 1 || y === GRID_SIZE - 1);
-        let cellContent = null;
-        let backgroundColor = isWall ? '#2c2c2c' : '#f0f0f0';
+        let emoji = "";
 
-        if (playerPos.x === x && playerPos.y === y) {
-          cellContent = '🧑';
-          if (playerInventory.shield > 0) backgroundColor = '#fff0d9';
-          if (playerInventory.speed > 0) backgroundColor = '#fff9e6';
-        } else if (bossPos.x === x && bossPos.y === y) {
-          cellContent = bossTypes[bossType].emoji;
-        } else if (bombs.some(b => b.x === x && b.y === y)) {
-          cellContent = '💣';
-        } else if (explosions.some(e => e.x === x && e.y === y)) {
-          cellContent = '💥';
-          backgroundColor = '#ffcccc';
-        } else if (coins.some(c => c.x === x && c.y === y)) {
-          cellContent = '💰';
-        } else if (powerUps.some(p => p.x === x && p.y === y)) {
-          const pu = powerUps.find(p => p.x === x && p.y === y);
-          cellContent = pu.type === 'shield' ? '🛡️' : pu.type === 'speed' ? '⚡' : '🎯';
-        }
+        if (playerPos.x === x && playerPos.y === y) emoji = "🧑";
+        else if (bossPos.x === x && bossPos.y === y)
+          emoji = bossTypes[bossType].emoji;
+        else if (bombs.some(b => b.x === x && b.y === y)) emoji = "💣";
+        else if (explosions.some(e => e.x === x && e.y === y)) emoji = "💥";
+        else if (coins.some(c => c.x === x && c.y === y)) emoji = "💰";
 
         tiles.push(
-          <div key={`${x}-${y}`} style={{
-            position: 'absolute',
-            left: x * CELL_SIZE,
-            top: y * CELL_SIZE,
-            width: CELL_SIZE,
-            height: CELL_SIZE,
-            background: backgroundColor,
-            border: '1px solid #ddd',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px',
-            fontWeight: 'bold'
-          }}>{cellContent}</div>
+          <div
+            key={`${x}-${y}`}
+            style={{
+              position: "absolute",
+              left: x * CELL_SIZE,
+              top: y * CELL_SIZE,
+              width: CELL_SIZE,
+              height: CELL_SIZE,
+              border: "1px solid #ddd",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              fontSize: 20
+            }}
+          >
+            {emoji}
+          </div>
         );
       }
     }
+
     return tiles;
   };
 
-  if (gameState === 'menu') {
+  if (gameState === "menu") {
     return (
-      <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto', fontFamily: 'Arial' }}>
-        <h1 style={{ textAlign: 'center', fontSize: '32px', marginBottom: '20px', color: '#333' }}>🏢 ESCAPE THE BOSS 💣</h1>
+      <div style={{ padding: 20 }}>
+        <h1>ESCAPE THE BOSS 💣</h1>
 
-        <div style={{ background: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-          <p style={{ marginBottom: '10px', color: '#333', fontWeight: 'bold' }}>Boss Name:</p>
-          <input type="text" value={tempBossName} onChange={(e) => setTempBossName(e.target.value)} placeholder="Enter boss name..." style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', marginBottom: '15px', boxSizing: 'border-box' }} />
+        <input
+          value={tempBossName}
+          onChange={e => setTempBossName(e.target.value)}
+          placeholder="Boss name"
+        />
 
-          <p style={{ marginBottom: '10px', color: '#333', fontWeight: 'bold' }}>Boss Type:</p>
-          <select value={bossType} onChange={(e) => setBossType(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', marginBottom: '15px', boxSizing: 'border-box' }}>
-            {Object.entries(bossTypes).map(([key, boss]) => (<option key={key} value={key}>{boss.emoji} {boss.name}</option>))}
-          </select>
-
-          <button onClick={startGame} style={{ width: '100%', padding: '12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>START GAME 🎮</button>
-
-          <button onClick={() => setSoundOn(!soundOn)} style={{ width: '100%', marginTop: '10px', padding: '10px', background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}>{soundOn ? '🔊' : '🔇'} Sound</button>
-        </div>
-
-        <div style={{ background: '#f5f5f5', padding: '20px', borderRadius: '8px' }}>
-          <h2 style={{ margin: '0 0 15px', color: '#333' }}>🏆 Top Scores</h2>
-          {leaderboard.map((entry, idx) => (<div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ddd', color: '#666' }}><span>#{idx + 1} {entry.name}</span><span>${entry.score}</span></div>))}
-        </div>
+        <button onClick={startGame}>Start</button>
       </div>
     );
   }
 
-  if (gameState === 'playing') {
-    const healthBar = Array(Math.max(0, bossHealth)).fill('❤️').join('') || '💀';
-    return (
-      <div style={{ padding: '20px', fontFamily: 'Arial' }}>
-        <div style={{ marginBottom: '20px' }}>
-          <h2 style={{ margin: '0 0 10px', color: '#333' }}>Level {level} - {bossTypes[bossType].emoji} {bossName}</h2>
-          <div style={{ fontSize: '13px', color: '#666' }}>💰 ${Math.round(score)} | 🔥 Combo x{combos} | 💣 Bombs: {playerInventory.bomb} | Boss HP: {healthBar}</div>
-        </div>
-        <div style={{ position: 'relative', width: GRID_SIZE * CELL_SIZE, height: GRID_SIZE * CELL_SIZE, background: '#f5f5f5', border: '3px solid #333', margin: '0 auto' }}>{renderBoard()}</div>
-        <div style={{ marginTop: '20px', fontSize: '12px', color: '#666', textAlign: 'center' }}>Arrow keys or WASD to move. SPACE to place bomb! <button onClick={resetGame} style={{ marginLeft: '20px', padding: '5px 10px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}>Menu</button></div>
-      </div>
-    );
-  }
-
-  const totalEarnings = Math.round(score);
   return (
-    <div style={{ padding: '20px', textAlign: 'center', maxWidth: '500px', margin: '0 auto', fontFamily: 'Arial' }}>
-      <h1 style={{ fontSize: '48px', marginBottom: '20px', color: '#333' }}>GAME OVER!</h1>
-      <div style={{ background: '#f5f5f5', padding: '30px', borderRadius: '8px' }}>
-        <p style={{ fontSize: '24px', color: '#333' }}>You escaped from {bossName}!</p>
-        <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#4CAF50' }}>💰 ${totalEarnings}</p>
-        <button onClick={resetGame} style={{ width: '100%', marginTop: '20px', padding: '12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>Play Again 🎮</button>
+    <div style={{ padding: 20 }}>
+      <h2>
+        {bossName} HP: {bossHealth}
+      </h2>
+
+      <div
+        style={{
+          position: "relative",
+          width: GRID_SIZE * CELL_SIZE,
+          height: GRID_SIZE * CELL_SIZE,
+          border: "3px solid black"
+        }}
+      >
+        {renderBoard()}
       </div>
+
+      <p>Score: {score}</p>
     </div>
   );
-};
-
-export default EscapeTheBossGame;
+}
