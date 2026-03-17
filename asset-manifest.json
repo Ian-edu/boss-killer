@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.js": "/boss-killer/static/js/main.40a0d212.js",
+    "main.js": "/boss-killer/static/js/main.52ba86bc.js",
     "index.html": "/boss-killer/index.html",
-    "main.40a0d212.js.map": "/boss-killer/static/js/main.40a0d212.js.map"
+    "main.52ba86bc.js.map": "/boss-killer/static/js/main.52ba86bc.js.map"
   },
   "entrypoints": [
-    "static/js/main.40a0d212.js"
+    "static/js/main.52ba86bc.js"
   ]
 }
